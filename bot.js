@@ -7,7 +7,7 @@ const {
     getDocs
 } = require("firebase/firestore");
 
-const TOKEN = "DEIN_BOT_TOKEN_HIER";
+const TOKEN = process.env.DISCORD_TOKEN;
 const PREFIX = "!";
 
 const firebaseConfig = {
