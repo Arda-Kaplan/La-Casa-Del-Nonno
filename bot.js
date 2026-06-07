@@ -13,7 +13,7 @@ const TOKEN = process.env.DISCORD_TOKEN;
 const PREFIX = "!";
 
 const firebaseConfig = {
-    apiKey: "DEIN_FIREBASE_API_KEY",
+    apiKey: "AIzaSyCzbVs6AHO6h8ena5Y80tL7RqWqsBWn6g",
     authDomain: "la-casa-del-nonno.firebaseapp.com",
     projectId: "la-casa-del-nonno",
     storageBucket: "la-casa-del-nonno.firebasestorage.app",
