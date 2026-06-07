@@ -1,46 +1,33 @@
 const { Client, GatewayIntentBits } = require("discord.js");
-const express = require("express");
-const cors = require("cors");
-const fs = require("fs");
 
-const TOKEN = process.env.DISCORD_TOKEN;
+const { initializeApp } = require("firebase/app");
+const {
+    getFirestore,
+    collection,
+    getDocs
+} = require("firebase/firestore");
+
+const TOKEN = "DEIN_BOT_TOKEN_HIER";
 const PREFIX = "!";
-const SALES_FILE = "./sales.json";
 
-if (!fs.existsSync(SALES_FILE)) {
-    fs.writeFileSync(SALES_FILE, JSON.stringify([], null, 2));
-}
+const firebaseConfig = {
+    apiKey: "DEIN_FIREBASE_API_KEY",
+    authDomain: "la-casa-del-nonno.firebaseapp.com",
+    projectId: "la-casa-del-nonno",
+    storageBucket: "la-casa-del-nonno.firebasestorage.app",
+    messagingSenderId: "751184717495",
+    appId: "1:751184717495:web:3452ad5e589591864fcf32"
+};
 
-function readSales() {
-    return JSON.parse(fs.readFileSync(SALES_FILE, "utf8"));
-}
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
 
 function formatMoney(amount) {
-    return amount.toLocaleString("de-DE") + " €";
+    return Number(amount || 0).toLocaleString("de-DE", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }) + " €";
 }
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-app.post("/sale", (req, res) => {
-    const sales = readSales();
-
-    sales.push({
-        product: req.body.product,
-        category: req.body.category,
-        quantity: Number(req.body.quantity),
-        total: Number(req.body.total),
-        date: new Date().toISOString()
-    });
-
-    fs.writeFileSync(SALES_FILE, JSON.stringify(sales, null, 2));
-    res.json({ success: true });
-});
-
-app.listen(3001, () => {
-    console.log("Kassen-API läuft auf Port 3001");
-});
 
 const client = new Client({
     intents: [
@@ -50,47 +37,48 @@ const client = new Client({
     ]
 });
 
-client.once("ready", () => {
+client.once("clientReady", () => {
     console.log(`Bot online als ${client.user.tag}`);
 });
 
-client.on("messageCreate", (message) => {
+client.on("messageCreate", async (message) => {
     if (message.author.bot) return;
     if (!message.content.startsWith(PREFIX)) return;
 
     const command = message.content.slice(PREFIX.length).trim().toLowerCase();
 
     if (command === "kasse") {
-        const sales = readSales();
+        const snapshot = await getDocs(collection(db, "sales"));
 
         let total = 0;
-        let essen = 0;
-        let trinken = 0;
-        let menu = 0;
+        let subtotal = 0;
+        let salesCount = 0;
+        let itemCount = 0;
 
-        sales.forEach(sale => {
-            total += sale.total;
+        snapshot.forEach(doc => {
+            const sale = doc.data();
 
-            if (sale.category === "Essen") essen += sale.total;
-            if (sale.category === "Trinken") trinken += sale.total;
-            if (sale.category === "Menü") menu += sale.total;
+            total += Number(sale.total || 0);
+            subtotal += Number(sale.subtotal || 0);
+            salesCount++;
+
+            if (Array.isArray(sale.items)) {
+                sale.items.forEach(item => {
+                    itemCount += Number(item.qty || 0);
+                });
+            }
         });
 
         message.reply(`
 📊 **Kassensturz – La Casa del Nonno**
 
-🍕 Essen: **${formatMoney(essen)}**
-🥤 Getränke: **${formatMoney(trinken)}**
-🍽️ Menü: **${formatMoney(menu)}**
+🧾 Bestellungen: **${salesCount}**
+🍽️ Produkte verkauft: **${itemCount}**
 
-🧾 Verkäufe: **${sales.length}**
-💰 Gesamt: **${formatMoney(total)}**
+💰 Umsatz ohne Rabatt: **${formatMoney(subtotal)}**
+🏷️ Rabatt gesamt: **${formatMoney(subtotal - total)}**
+💵 Gesamtumsatz: **${formatMoney(total)}**
         `);
-    }
-
-    if (command === "kassereset") {
-        fs.writeFileSync(SALES_FILE, JSON.stringify([], null, 2));
-        message.reply("✅ Kasse wurde zurückgesetzt.");
     }
 });
 
