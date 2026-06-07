@@ -10,6 +10,9 @@ const {
 } = require("firebase/firestore");
 
 const TOKEN = process.env.DISCORD_TOKEN;
+
+console.log("Token:", process.env.DISCORD_TOKEN ? "geladen" : "NICHT geladen");
+
 const PREFIX = "!";
 
 const firebaseConfig = {
