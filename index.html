@@ -149,7 +149,7 @@ function productKey(name){
         .replaceAll(" ","_").replaceAll("'","").replaceAll(".","").replaceAll(",","").replaceAll(":","");
 }
 
-function euro(value){ return value.toFixed(2).replace(".", ",") + " €"; }
+function euro(value){ return value.toLocaleString("de-DE") + " €"; }
 
 function getDefaultInventory(){
     const data = {};
