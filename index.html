@@ -211,18 +211,35 @@ function getDefaultInventory(){
 }
 
 async function initInventory(){
-    const snap = await getDoc(inventoryRef);
-    if(!snap.exists()){
-        inventory = getDefaultInventory();
-        await setDoc(inventoryRef, inventory);
+    try{
+        const defaults = getDefaultInventory();
+        const snap = await getDoc(inventoryRef);
+
+        if(!snap.exists()){
+            inventory = defaults;
+            await setDoc(inventoryRef, inventory);
+        } else {
+            inventory = {...defaults, ...snap.data()};
+            await setDoc(inventoryRef, inventory, { merge:true });
+        }
+
+        onSnapshot(inventoryRef, (docSnap) => {
+            inventory = docSnap.exists() ? {...defaults, ...docSnap.data()} : defaults;
+            firebaseLoaded = true;
+            document.getElementById("loadingText").style.display = "none";
+            renderMenu();
+            renderInventoryIfOpen();
+        }, (error) => {
+            console.error(error);
+            document.getElementById("loadingText").innerText =
+                "Firebase Fehler: " + error.message;
+        });
+
+    } catch(error){
+        console.error(error);
+        document.getElementById("loadingText").innerText =
+            "Firebase konnte nicht geladen werden: " + error.message;
     }
-    onSnapshot(inventoryRef, (docSnap) => {
-        inventory = docSnap.exists() ? docSnap.data() : getDefaultInventory();
-        firebaseLoaded = true;
-        document.getElementById("loadingText").style.display = "none";
-        renderMenu();
-        renderInventoryIfOpen();
-    });
 }
 
 function renderMenu(){
